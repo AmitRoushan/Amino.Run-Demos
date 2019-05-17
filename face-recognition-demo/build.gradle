@@ -44,8 +44,11 @@ task runoms(type: JavaExec) {
 task runks(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     main = 'amino.run.kernel.server.KernelServerImpl'
-    args project.property('kernelServerIpFlag'), project.property('kernelServerIp'), project.property('kernelServerPortFlag'), project.property('kernelServerPort'),
-            project.property('omsIpFlag'), project.property('omsIp'), project.property('omsPortFlag'), project.property('omsPort')
+    args project.property('kernelServerIpFlag'), project.property('kernelServerIp'),
+            project.property('kernelServerPortFlag'), project.property('kernelServerPort'),
+            project.property('omsIpFlag'), project.property('omsIp'),
+            project.property('omsPortFlag'), project.property('omsPort'),
+            project.property('kernelServerLabelFlag'), project.property('kernelServerLabel')
 }
 
 
@@ -60,5 +63,6 @@ task runapp(type: JavaExec) {
             project.property('inferenceTypeFlag'), project.property('inferenceType'),
             project.property('sourceTypeFlag'), project.property('sourceType'),
             project.property('targetTypeFlag'), project.property('targetType'),
+            project.property('kernelServerLabelFlag'), project.property('appKernelServerLabel'),
             project.property('startKernelServerFlag'), project.property('startKernelServer')
 }

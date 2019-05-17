@@ -1,21 +1,26 @@
 package application;
 
+import amino.run.app.NodeSelectorSpec;
+import amino.run.app.NodeSelectorTerm;
+import amino.run.app.MicroServiceSpec;
+import amino.run.app.Language;
+import amino.run.app.Operator;
+import amino.run.app.Registry;
+import amino.run.app.DMSpec;
+import amino.run.app.Requirement;
 import com.google.devtools.common.options.OptionsParser;
 
-import amino.run.app.MicroServiceSpec;
 import amino.run.common.MicroServiceID;
 import amino.run.policy.atleastoncerpc.AtLeastOnceRPCPolicy;
 import facerecog.FrameGenerator;
 import facerecog.Detection;
 import facerecog.Recognition;
 import facerecog.Tracking;
-import amino.run.app.DMSpec;
 import amino.run.kernel.server.KernelServerImpl;
-import amino.run.app.Language;
-import amino.run.app.Registry;
 
 import java.net.InetSocketAddress;
 import java.rmi.registry.LocateRegistry;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.logging.Logger;
 
@@ -96,12 +101,16 @@ public class DemoAppStart {
             try {
                 // Deploy Recognition micro service in Amino system and fork Tracking process to detect frames with faces in it
                 // and eventually use Recognition micro service to identify human face in frames.
+                NodeSelectorSpec nodeSpec =
+                        getNodeSelectorSpec("KernelServerType", Operator.NotIn, "AppClient");
+
                 MicroServiceSpec spec = MicroServiceSpec.newBuilder()
                         .setLang(Language.java)
                         .setJavaClassName("facerecog.Recognition").addDMSpec(
                                 DMSpec.newBuilder()
                                         .setName(AtLeastOnceRPCPolicy.class.getName())
                                         .create())
+                        .setNodeSelectorSpec(nodeSpec)
                         .create();
 
                 mid = server.create(spec.toString());
@@ -132,4 +141,23 @@ public class DemoAppStart {
     logger.severe("Incorrect input: please input correct inference type (detection/tracking)");
 
     }
+
+    private static NodeSelectorTerm getNodeSelectorTerm(String key, Operator operator, String... labels) {
+        NodeSelectorTerm term = new NodeSelectorTerm();
+        term.addMatchRequirements(getRequirement(key, operator, labels));
+        return term;
+    }
+
+    private static Requirement getRequirement(String key, Operator operator, String... labels) {
+        if (Operator.Exists.equals(operator)) {
+            return new Requirement(key, operator, null);
+        }
+        return new Requirement(key, operator, Arrays.asList(labels));
+    }
+    private static NodeSelectorSpec getNodeSelectorSpec(String key, Operator operator, String... labels) {
+        NodeSelectorSpec spec = new NodeSelectorSpec();
+        spec.addNodeSelectorTerms(getNodeSelectorTerm(key, operator, labels));
+        return spec;
+    }
+
 }
