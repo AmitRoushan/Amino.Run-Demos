@@ -74,3 +74,10 @@ RUN cd ~ && \
     rm graalvm-ce-1.0.0-rc8-linux-amd64.tar.gz
 
 ENV JAVA_HOME=/root/java
+
+ENV PATH=/root/java/bin:$PATH
+
+COPY ./ /home/face-recognition-demo/
+
+RUN cd /home/face-recognition-demo/ && \
+    bash gradlew build
