@@ -30,8 +30,7 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     python3-dev \
     wget \
-    zip \
-    git
+    zip
 
 RUN cd ~ && \
     wget -O opencv.zip https://github.com/opencv/opencv/archive/3.4.2.zip && \
@@ -62,27 +61,16 @@ RUN cd ~ && \
     rm -rf opencv-3.4.2 && \
     rm -rf opencv_contrib-3.4.2	
 
-RUN git clone https://github.com/davisking/dlib.git && \
-    cd dlib && \
-    mkdir build && \
-    cd build && \
-    cmake .. -DUSE_AVX_INSTRUCTIONS=1 && \
-    cmake --build . && \
-    cd .. && \
-    python setup.py install --yes USE_AVX_INSTRUCTIONS && \
+RUN pip install dlib && \
     pip install face_recognition && \
     pip install imutils && \
     pip install imageio
 
-# NOTE: Oracle regularly change the versions available for download - so update the below appropriately.
-#       See https://github.com/dockerfile/java/issues/36
-RUN \
-    JAVA_VERSION_MAJOR=8 \
-    JAVA_VERSION_MINOR=191 \
-    JAVA_VERSION_BUILD=12 \
-    JAVA_DOWNLOAD_HASH=2787e4a523244c269598db4e85c51e0c && \
-    cd ~ && \
-    wget --no-check-certificate -c --header "Cookie: oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_DOWNLOAD_HASH}/jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz && \
-    tar -xzf jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.tar.gz
+# NOTE: GraalVM regularly change the versions available for download - so update the below appropriately.
+RUN cd ~ && \
+    wget https://github.com/oracle/graal/releases/download/vm-1.0.0-rc8/graalvm-ce-1.0.0-rc8-linux-amd64.tar.gz && \
+    tar -xzf graalvm-ce-1.0.0-rc8-linux-amd64.tar.gz && \
+    mv graalvm-ce-1.0.0-rc8 java && \
+    rm graalvm-ce-1.0.0-rc8-linux-amd64.tar.gz
 
-COPY ./ /home/face-recognition-demo/
+ENV JAVA_HOME=/root/java

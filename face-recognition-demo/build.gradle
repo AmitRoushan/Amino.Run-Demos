@@ -32,6 +32,24 @@ task compileRecogStub(type: JavaCompile) {
 
 jar.dependsOn compileRecogStub
 
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Face Recognition fat jar file',
+                'Implementation-Version': 1.0,
+                'Main-Class': 'application.DemoAppStart'
+    }
+    baseName = project.name + '-all'
+    print "-------> configuration -> " + configurations
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+            print "came here -----> "
+        }
+    }
+    with jar
+}
+
 // Task for running the OMS
 task runoms(type: JavaExec) {
     dependsOn jar
