@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kernelserver-deploy
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kernelserver
+  template:
+    metadata:
+      labels:
+        app: kernelserver
+    spec:
+      containers:
+      - name: kernelserver
+        image: amitkumaroushan/face-recognition:latest
+        env:
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 22345
+        command: ["/root/amino/start-kernelserver.sh"]
+        args: ["oms-face-recognition", "22346"]

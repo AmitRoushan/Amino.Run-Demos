@@ -7,7 +7,8 @@
 # Upon completion, do the following:
 # >> xhost -
 
-FROM python:3.6-slim-stretch
+# base image is handled in gradle task
+# FROM python:3.6-slim-stretch
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -77,7 +78,6 @@ ENV JAVA_HOME=/root/java
 
 ENV PATH=/root/java/bin:$PATH
 
-COPY ./ /home/face-recognition-demo/
+# TODO add this is with util packages later
+RUN apt-get install -y dnsutils
 
-RUN cd /home/face-recognition-demo/ && \
-    bash gradlew build

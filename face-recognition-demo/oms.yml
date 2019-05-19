@@ -1,0 +1,44 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: oms-face-recognition-deploy
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oms-face-recognition
+  template:
+    metadata:
+      labels:
+        app: oms-face-recognition
+    spec:
+      containers:
+      - name: oms-face-recognition
+        image: amitkumaroushan/face-recognition:latest
+        env:
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 22346
+        command: ["/root/amino/start-oms.sh"]
+        securityContext:
+          privileged: true # FOR DEBUG
+          allowPrivilegeEscalation: true
+          capabilities:
+            add: ["NET_ADMIN", "SYS_TIME"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oms-face-recognition
+spec:
+  ports:
+  - port: 22346
+    targetPort: 22346
+    protocol: TCP
+  selector:
+    app: oms-face-recognition

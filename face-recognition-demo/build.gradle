@@ -1,13 +1,29 @@
-apply plugin: 'java-library'
+buildscript {
+    repositories {
+        jcenter()
+        google()
+        maven { url  "https://dl.bintray.com/terryzhuo/Amino" }
+    }
 
-repositories {
-    jcenter()
-    google()
-    maven { url  "https://dl.bintray.com/terryzhuo/Amino" }
+    dependencies {
+        classpath 'com.bmuschko:gradle-docker-plugin:3.0.7'
+    }
 }
 
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerTagImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
+
+plugins {
+    id "de.qaware.cloud.deployer" version "0.9.2"
+}
+
+apply plugin: 'java-library'
+apply plugin: 'com.bmuschko.docker-remote-api'
+
 dependencies {
-    implementation 'com.amino-os.run:amino-run-core:1.0.0.RC6'
+    compile 'com.amino-os.run:amino-run-core:1.0.0.RC6'
 }
 
 // Task for Stub generation
@@ -34,17 +50,16 @@ jar.dependsOn compileRecogStub
 
 //create a single Jar with all dependencies
 task fatJar(type: Jar) {
+    dependsOn jar
     manifest {
         attributes 'Implementation-Title': 'Face Recognition fat jar file',
                 'Implementation-Version': 1.0,
                 'Main-Class': 'application.DemoAppStart'
     }
     baseName = project.name + '-all'
-    print "-------> configuration -> " + configurations
     from {
         configurations.compile.collect {
             it.isDirectory() ? it : zipTree(it)
-            print "came here -----> "
         }
     }
     with jar
@@ -83,4 +98,131 @@ task runapp(type: JavaExec) {
             project.property('targetTypeFlag'), project.property('targetType'),
             project.property('kernelServerLabelFlag'), project.property('appKernelServerLabel'),
             project.property('startKernelServerFlag'), project.property('startKernelServer')
+}
+
+docker {
+    registryCredentials {
+        url = project.property('url')
+        username = project.property('repo.username')
+        password = project.property('repo.password')
+    }
+}
+
+task copyScripts(type: Copy){
+    mkdir "$projectDir/scripts/"
+    from "${projectDir}/../k8s-deployment/common/"
+    into "$projectDir/scripts/"
+}
+
+task dockerfile(type: Dockerfile) {
+    dependsOn copyScripts
+    dependsOn fatJar
+    destFile = project.file('./Dockerfile')
+    from 'python:3.6-slim-stretch'
+    instructionsFromTemplate('./Dockerfile.template')
+    copyFile './build/libs/face-recognition-demo-all.jar', '/root/amino/jars/'
+    copyFile './scripts/common.inc', '/root/amino/'
+    copyFile './scripts/start-oms.sh', '/root/amino/'
+    copyFile './scripts/start-kernelserver.sh', '/root/amino/'
+    copyFile './scripts/start-app.sh', '/root/amino/'
+    copyFile './scripts/client.policy', '/root/amino/'
+}
+
+
+def appImageName = "$docker.registryCredentials.username/face-recognition"
+
+task buildDockerImage(type: DockerBuildImage) {
+    dependsOn dockerfile
+    url = 'unix:///var/run/docker.sock'
+    inputDir = file('.')
+    tag = appImageName
+}
+
+task tagImage (type: DockerTagImage){
+    dependsOn buildDockerImage
+    repository = appImageName
+    tag = "latest"
+    targetImageId { buildDockerImage.getImageId() }
+}
+
+task pushImage(type: DockerPushImage) {
+    dependsOn tagImage
+    imageName = appImageName
+    tag = 'latest'
+}
+
+deployer {
+    kubernetes {
+        id = project.property('omsId')
+        baseUrl = project.property('baseUrl')
+        namespace = project.property('namespace')
+        strategy = project.property('strategy')
+        auth {
+            username = project.property('username')
+            password = project.property('password')
+        }
+        ssl {
+            trustAll = true
+        }
+        files = [file("oms.yml")]
+    }
+}
+
+deployer {
+    kubernetes {
+        id = project.property('kernelServerId')
+        baseUrl = project.property('baseUrl')
+        namespace = project.property('namespace')
+        strategy = project.property('strategy')
+        auth {
+            username = project.property('username')
+            password = project.property('password')
+        }
+        ssl {
+            trustAll = true
+        }
+        files = [file("kernelserver.yml")]
+    }
+}
+
+deployer {
+    kubernetes {
+        id = project.property('appId')
+        baseUrl = project.property('baseUrl')
+        namespace = project.property('namespace')
+        strategy = project.property('strategy')
+        auth {
+            username = project.property('username')
+            password = project.property('password')
+        }
+        ssl {
+            trustAll = true
+        }
+        files = [file("app.yml")]
+    }
+}
+
+task deployOms(type: Exec){
+    dependsOn pushImage
+    commandLine './gradlew', 'deploy',"--environmentId=oms"
+}
+
+task deployKernelServer(type: Exec){
+    dependsOn deployOms
+    commandLine './gradlew', 'deploy',"--environmentId=kernelserver"
+}
+
+task deployApp(type: Exec){
+    dependsOn deployKernelServer
+    commandLine './gradlew', 'deploy',"--environmentId=app"
+}
+
+subprojects {
+    genStubs {
+        def pkgName = 'amino.run.appexamples.minnietwitter.app'
+        def src = "$projectDir.parent/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/amino/run/appexamples/minnietwitter/app/"
+        def dst = "$projectDir.parent/src/main/java/amino/run/appexamples/minnietwitter/app/stubs/"
+        args src, pkgName, dst
+        outputs.dir dst
+    }
 }

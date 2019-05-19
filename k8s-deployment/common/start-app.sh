@@ -1,11 +1,11 @@
-#!/bin/sh -x
+#!/bin/bash -x
 
 # TODO: getopt
 # $1 = app-entry-point
 # $2 = oms-service-name
 # $3 = oms-service-port
 
-source /root/dcap/common.inc
+source /root/amino/common.inc
 
 
 APP_ENTRY=$1
@@ -29,5 +29,5 @@ if [ -z $OMS_IP ]; then
 fi
 
 echo "Starting app $APP_ENTRY on $APP_IP:$APP_PORT, connecting to $OMS_SERVICE at $OMS_IP:$OMS_PORT .."
-java -cp "/root/dcap/jars/*" -Djava.rmi.server.useCodebaseOnly=false -Djava.security.policy=/dcap/client.policy $APP_ENTRY $OMS_IP $OMS_PORT $APP_IP $APP_PORT
+java -cp "/root/amino/jars/*" -Djava.rmi.server.useCodebaseOnly=false -Djava.security.policy=/dcap/client.policy $APP_ENTRY $OMS_IP $OMS_PORT $APP_IP $APP_PORT
 

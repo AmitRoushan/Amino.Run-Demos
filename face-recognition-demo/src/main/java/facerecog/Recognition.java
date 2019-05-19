@@ -43,8 +43,8 @@ public class Recognition implements MicroService {
     private void initRecognitionProcess() {
         String cwd = System.getProperty("user.dir");
         String home = System.getProperty("user.home");
-        String cmd = home + "/.virtualenvs/cv/bin/python3"; // if deployed on host system with opencv installed
-        //String cmd = "/usr/local/bin/python"; // if deployed in container
+        // String cmd = home + "/.virtualenvs/cv/bin/python3"; // if deployed on host system with opencv installed
+        String cmd = "/usr/local/bin/python"; // if deployed in container
         String path = cwd + "/src/main/python/";
 
         // fork process for facial recognition
